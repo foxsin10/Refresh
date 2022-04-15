@@ -8,8 +8,8 @@ public enum RefreshState: Hashable {
 }
 
 public struct StateItem: Hashable {
-    var state: RefreshState
-    var progress: CGFloat
+    public private(set) var state: RefreshState
+    public private(set) var progress: CGFloat
 
     public var isloading: Bool { state == .loading }
     public var ispulling: Bool { state == .pulling }

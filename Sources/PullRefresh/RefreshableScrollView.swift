@@ -11,15 +11,20 @@ public struct StateItem: Hashable {
     var state: RefreshState
     var progress: CGFloat
 
-    var isloading: Bool { state == .loading }
-    var ispulling: Bool { state == .pulling }
-    var idle: Bool { state == .idle }
+    public var isloading: Bool { state == .loading }
+    public var ispulling: Bool { state == .pulling }
+    public var idle: Bool { state == .idle }
 
-    mutating func updateProgress(_ progress: CGFloat) {
+    public init(state: RefreshState, progress: CGFloat) { 
+        self.state = state
         self.progress = progress
     }
 
-    mutating func updateState(_ state: RefreshState) {
+    public mutating func updateProgress(_ progress: CGFloat) {
+        self.progress = progress
+    }
+
+    public mutating func updateState(_ state: RefreshState) {
         self.state = state
     }
 }

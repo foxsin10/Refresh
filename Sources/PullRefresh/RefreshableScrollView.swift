@@ -11,11 +11,13 @@ public struct StateItem: Hashable {
     public private(set) var state: RefreshState
     public private(set) var progress: CGFloat
 
+    var isCanceled: Bool = false
+
     public var isloading: Bool { state == .loading }
     public var ispulling: Bool { state == .pulling }
     public var idle: Bool { state == .idle }
 
-    public init(state: RefreshState, progress: CGFloat) { 
+    public init(state: RefreshState, progress: CGFloat) {
         self.state = state
         self.progress = progress
     }
@@ -27,6 +29,12 @@ public struct StateItem: Hashable {
     public mutating func updateState(_ state: RefreshState) {
         self.state = state
     }
+}
+
+enum ActionState {
+    case pulling
+    case swiping
+    case ignore
 }
 
 public struct RefreshableScrollView<
@@ -95,15 +103,15 @@ public struct RefreshableScrollView<
                 GeometryIndicator(identifier: .floating)
                     .frame(height: 0)
                 VStack(spacing: 0) {
-                content()
+                    content()
                     // here we get the content bounds
-                    .anchorPreference(
-                        key: RefreshKeys.Anchor.self,
-                        value: .bounds,
-                        transform: { [ContentGeoItem(identifier: .content, bounds: $0)] }
-                    )
+                        .anchorPreference(
+                            key: RefreshKeys.Anchor.self,
+                            value: .bounds,
+                            transform: { [ContentGeoItem(identifier: .content, bounds: $0)] }
+                        )
 
-                        // load-more-animation-view
+                    // load-more-animation-view
                     if swipupEnabled {
                         ZStack {
                             Rectangle()
@@ -113,10 +121,10 @@ public struct RefreshableScrollView<
                         }
                     }
                 }
-                    // use alignmentGuide to make space when loading
-                    .alignmentGuide(.top, computeValue: { _ in
-                        pullProgress.isloading ? scrollOffset - pullthreshold : 0
-                    })
+                // use alignmentGuide to make space when loading
+                .alignmentGuide(.top, computeValue: { _ in
+                    pullProgress.isloading ? scrollOffset - pullthreshold : 0
+                })
 
                 // pull-to-refresh-animation-view
                 ZStack {
@@ -137,40 +145,16 @@ public struct RefreshableScrollView<
             DispatchQueue.main.async {
                 let floatingRect = geos.first(where: \.isFloting)?.rect ?? .zero
                 // scrollview bounds
-                let fixedRect = geos.first(where: \.isFixTop)?.rect ?? .zero
+                let containerRect = geos.first(where: \.isFixTop)?.rect ?? .zero
 
-                scrollOffset = floatingRect.minY - fixedRect.minY
+                let scrollOffset = floatingRect.minY - containerRect.minY
+                let diff = scrollOffset - self.scrollOffset
 
-                guard scrollOffset > 0 else {
-                    // handle load more
-                    guard swipupEnabled,
-                          contentBounds.height > 0 else {
-                        return
-                    }
+                let direction = diff > 0 ? ActionState.pulling : (diff == 0 ? .ignore : .swiping)
+                self.scrollOffset = scrollOffset
 
-                    // offset out of scrollview's bounds
-                    let cutOffset = -(contentBounds.height - fixedRect.height)
-                    swipupProgress.updateProgress(max(0, (cutOffset - scrollOffset) / swipupThreshold))
-
-                    if scrollOffset <= cutOffset,
-                       swipupProgress.idle {
-                        swipupProgress.updateState(.pulling)
-                    } else if scrollOffset > cutOffset - swipupThreshold,
-                              swipupProgress.ispulling {
-                        swipupProgress = .init(state: .loading, progress: 1)
-
-                        loadMore {
-                            withAnimation {
-                                swipupProgress = .init(state: .idle, progress: 0)
-                            }
-                        }
-                    }
-
-                    return
-                }
-
-                // handle pull to refresh
-                refresh()
+                pullingState()
+                swipingState(containerRect: containerRect, direction: direction)
             }
         }
     }
@@ -189,11 +173,31 @@ public struct RefreshableScrollView<
         return GeometryIndicator(identifier: .fixTop)
     }
 
-    private func refresh() {
+    // MARK: Calculate action state
+
+    private func pullingState() {
+        guard self.scrollOffset > 0 else {
+            guard self.scrollOffset != 0 else {
+                return
+            }
+
+            if pullProgress.isloading {
+                withAnimation {
+                    pullProgress.updateState(.idle)
+                    // cancel
+                }
+            }
+
+            return
+        }
+
+        // handle pull to refresh
         guard !pullProgress.isloading else {
             return
         }
+
         pullProgress.updateProgress(scrollOffset / pullthreshold)
+
         if scrollOffset > pullthreshold, pullProgress.idle {
             pullProgress.updateState(.pulling)
             // maybe hatapic engine
@@ -201,11 +205,54 @@ public struct RefreshableScrollView<
         } else if scrollOffset <= pullthreshold, pullProgress.ispulling {
             pullProgress = .init(state: .loading, progress: 1)
             // refresh
-
             onRefresh {
                 withAnimation {
-                    pullProgress = .init(state: .idle, progress: 0)
+                    let isCanceled = pullProgress.isCanceled
+                    let progerss = pullProgress.progress
+                    pullProgress = .init(state: .idle, progress: isCanceled ? progerss : 0)
                 }
+            }
+        }
+    }
+
+    private func swipingState(containerRect: CGRect, direction: ActionState) {
+        guard swipupEnabled,
+              contentBounds.height > 0 else {
+            return
+        }
+
+        guard scrollOffset != 0 else {
+            return
+        }
+
+        let cutOffset = -(contentBounds.height - containerRect.height)
+        swipupProgress.updateProgress(max(0, (cutOffset - scrollOffset) / swipupThreshold))
+
+        guard swipupProgress.isloading else {
+            // offset out of scrollview's bounds
+            if scrollOffset < cutOffset - swipupThreshold,
+               swipupProgress.idle {
+                swipupProgress.updateState(.pulling)
+            } else if scrollOffset >= cutOffset - swipupThreshold,
+                      swipupProgress.ispulling {
+                swipupProgress = .init(state: .loading, progress: 1)
+
+                loadMore {
+                    withAnimation {
+                        let isCanceled = swipupProgress.isCanceled
+                        let progerss = swipupProgress.progress
+                        swipupProgress = .init(state: .idle, progress: isCanceled ? progerss : 0)
+                    }
+                }
+            }
+            return
+        }
+
+        if direction == .pulling, scrollOffset >= cutOffset - swipupThreshold  {
+            withAnimation {
+                swipupProgress.updateState(.idle)
+                swipupProgress.isCanceled = true
+                // cancel
             }
         }
     }
@@ -245,13 +292,13 @@ private enum RefreshKeys {
     }
 
     struct Anchor: PreferenceKey {
-      static var defaultValue: [ContentGeoItem] = []
+        static var defaultValue: [ContentGeoItem] = []
 
-      static func reduce(
-        value: inout [ContentGeoItem],
-        nextValue: () -> [ContentGeoItem]) {
-        value.append(contentsOf: nextValue())
-      }
+        static func reduce(
+            value: inout [ContentGeoItem],
+            nextValue: () -> [ContentGeoItem]) {
+                value.append(contentsOf: nextValue())
+            }
     }
 }
 

@@ -9,10 +9,10 @@ import SwiftUI
 //import PullRefresh
 
 struct ContentView: View {
-    @State var items = ["fake item 1"]
+    @State var items: [String] = []
 
     @State var pullProgress: StateItem = .init(state: .idle, progress: 0)
-    @State var sProgress: CGFloat = 0.0
+    @State var loadMoreProgress: StateItem = .init(state: .idle, progress: 0)
 
     @State var refreshing: Bool = false
 
@@ -31,19 +31,32 @@ struct ContentView: View {
 
             Divider()
 
-            contentView
-                .onRefresh(
-                    pullthreshold: 50,
-                    pullProgress: $pullProgress,
-                    onRefresh: { done in
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                            done()
-                        }
-                    },
-                    pullAnimationView: {
-                        buildLoadingView(progress: pullProgress.progress)
+            RefreshableScrollView(
+                pullthreshold: 50,
+                pullProgress: $pullProgress,
+                onRefresh: { done in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        done()
                     }
-                )
+                },
+                pullAnimationView: {
+                    buildLoadingView(progress: pullProgress.progress)
+                },
+                enableSwipup: true,
+                swipupThreshold: 50,
+                swipupProgress: $loadMoreProgress,
+                swipupAnimationView: {
+                    buildLoadMoreView(progress: loadMoreProgress.progress)
+                },
+                onloadMore: { done in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        done()
+                    }
+                }
+            ) {
+                contentView
+            }
+
         }
         .background(Color.black.opacity(0.06))
         .onAppear {
@@ -53,6 +66,16 @@ struct ContentView: View {
 
     private func buildLoadingView(progress: CGFloat) -> some View {
         return Image(systemName: "arrow.down")
+            .font(.system(size: 16, weight: .heavy))
+            .foregroundColor(.black)
+            .opacity(min(1, progress))
+            .rotationEffect(
+                Angle(radians: Double(min(1, max(0, progress))) * .pi)
+            )
+    }
+
+    private func buildLoadMoreView(progress: CGFloat) -> some View {
+        return Image(systemName: "arrow.up")
             .font(.system(size: 16, weight: .heavy))
             .foregroundColor(.black)
             .opacity(min(1, progress))
@@ -91,9 +114,8 @@ struct ContentView: View {
 
     func loadMore() {
         let count = items.count
-
         items.append(
-            contentsOf: (count ..< count + 10).map { "Fake item: \($0 + 1)" }
+            contentsOf: (0 ..< 10).map { "Fake item: \(count + $0)" }
         )
     }
 }

@@ -134,42 +134,44 @@ public struct RefreshableScrollView<
             }
         }
         .onPreferenceChange(RefreshKeys.Geometry.self) { geos in
-            let floatingRect = geos.first(where: \.isFloting)?.rect ?? .zero
-            // scrollview bounds
-            let fixedRect = geos.first(where: \.isFixTop)?.rect ?? .zero
+            DispatchQueue.main.async {
+                let floatingRect = geos.first(where: \.isFloting)?.rect ?? .zero
+                // scrollview bounds
+                let fixedRect = geos.first(where: \.isFixTop)?.rect ?? .zero
 
-            scrollOffset = floatingRect.minY - fixedRect.minY
+                scrollOffset = floatingRect.minY - fixedRect.minY
 
-            guard scrollOffset > 0 else {
-                // handle load more
-                guard swipupEnabled,
-                      contentBounds.height > 0 else {
+                guard scrollOffset > 0 else {
+                    // handle load more
+                    guard swipupEnabled,
+                          contentBounds.height > 0 else {
+                        return
+                    }
+
+                    // offset out of scrollview's bounds
+                    let cutOffset = -(contentBounds.height - fixedRect.height)
+                    swipupProgress.updateProgress(max(0, (cutOffset - scrollOffset) / swipupThreshold))
+
+                    if scrollOffset <= cutOffset,
+                       swipupProgress.idle {
+                        swipupProgress.updateState(.pulling)
+                    } else if scrollOffset > cutOffset - swipupThreshold,
+                              swipupProgress.ispulling {
+                        swipupProgress = .init(state: .loading, progress: 1)
+
+                        loadMore {
+                            withAnimation {
+                                swipupProgress = .init(state: .idle, progress: 0)
+                            }
+                        }
+                    }
+
                     return
                 }
 
-                // offset out of scrollview's bounds
-                let cutOffset = -(contentBounds.height - fixedRect.height)
-                swipupProgress.updateProgress(max(0, (cutOffset - scrollOffset) / swipupThreshold))
-
-                if scrollOffset <= cutOffset,
-                   swipupProgress.idle {
-                    swipupProgress.updateState(.pulling)
-                } else if scrollOffset > cutOffset - swipupThreshold,
-                          swipupProgress.ispulling {
-                    swipupProgress = .init(state: .loading, progress: 1)
-
-                    loadMore {
-                        withAnimation {
-                            swipupProgress = .init(state: .idle, progress: 0)
-                        }
-                    }
-                }
-
-                return
+                // handle pull to refresh
+                refresh()
             }
-
-            // handle pull to refresh
-            refresh()
         }
     }
 

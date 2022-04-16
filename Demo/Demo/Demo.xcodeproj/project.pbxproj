@@ -16,6 +16,7 @@
 		1FF404A42809E6E100468F5C /* DemoUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FF404A32809E6E100468F5C /* DemoUITestsLaunchTests.swift */; };
 		1FF404B62809E76100468F5C /* PullModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FF404B42809E76100468F5C /* PullModifier.swift */; };
 		1FF404B72809E76100468F5C /* RefreshableScrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FF404B52809E76100468F5C /* RefreshableScrollView.swift */; };
+		1FF404B9280AAF0A00468F5C /* InteractionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FF404B8280AAF0A00468F5C /* InteractionState.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +49,7 @@
 		1FF404A32809E6E100468F5C /* DemoUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		1FF404B42809E76100468F5C /* PullModifier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PullModifier.swift; sourceTree = "<group>"; };
 		1FF404B52809E76100468F5C /* RefreshableScrollView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RefreshableScrollView.swift; sourceTree = "<group>"; };
+		1FF404B8280AAF0A00468F5C /* InteractionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractionState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -146,6 +148,7 @@
 			children = (
 				1FF404B42809E76100468F5C /* PullModifier.swift */,
 				1FF404B52809E76100468F5C /* RefreshableScrollView.swift */,
+				1FF404B8280AAF0A00468F5C /* InteractionState.swift */,
 			);
 			path = PullRefresh;
 			sourceTree = "<group>";
@@ -283,6 +286,7 @@
 				1FF404892809E6E000468F5C /* ContentView.swift in Sources */,
 				1FF404872809E6E000468F5C /* DemoApp.swift in Sources */,
 				1FF404B62809E76100468F5C /* PullModifier.swift in Sources */,
+				1FF404B9280AAF0A00468F5C /* InteractionState.swift in Sources */,
 				1FF404B72809E76100468F5C /* RefreshableScrollView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

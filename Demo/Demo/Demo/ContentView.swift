@@ -11,8 +11,8 @@ import SwiftUI
 struct ContentView: View {
     @State var items: [String] = []
 
-    @State var pullProgress: StateItem = .init(state: .idle, progress: 0)
-    @State var loadMoreProgress: StateItem = .init(state: .idle, progress: 0)
+    @State var pullProgress: InterActionState = .init(state: .idle, progress: 0)
+    @State var loadMoreProgress: InterActionState = .init(state: .idle, progress: 0)
 
     @State var refreshing: Bool = false
 

@@ -3,34 +3,6 @@ import SwiftUI
 public typealias ActionComplete = () -> Void
 public typealias RefreshAction = (@escaping ActionComplete) -> Void
 
-public enum RefreshState: Hashable {
-    case idle, loading, pulling
-}
-
-public struct StateItem: Hashable {
-    public private(set) var state: RefreshState
-    public private(set) var progress: CGFloat
-
-    var isCanceled: Bool = false
-
-    public var isloading: Bool { state == .loading }
-    public var ispulling: Bool { state == .pulling }
-    public var idle: Bool { state == .idle }
-
-    public init(state: RefreshState, progress: CGFloat) {
-        self.state = state
-        self.progress = progress
-    }
-
-    public mutating func updateProgress(_ progress: CGFloat) {
-        self.progress = progress
-    }
-
-    public mutating func updateState(_ state: RefreshState) {
-        self.state = state
-    }
-}
-
 enum ActionState {
     case pulling
     case swiping
@@ -56,12 +28,12 @@ public struct RefreshableScrollView<
     ///   - content: content of list view
     public init(
         pullthreshold: CGFloat,
-        pullProgress: Binding<StateItem>,
+        pullProgress: Binding<InterActionState>,
         onRefresh: @escaping RefreshAction,
         @ViewBuilder pullAnimationView: @escaping () -> PullAnimationView,
         enableSwipup: Bool = false,
         swipupThreshold: CGFloat,
-        swipupProgress: Binding<StateItem>,
+        swipupProgress: Binding<InterActionState>,
         @ViewBuilder swipupAnimationView: @escaping () -> SwipupAnimationView,
         onloadMore: @escaping RefreshAction,
         @ViewBuilder content: @escaping () -> Content
@@ -91,8 +63,8 @@ public struct RefreshableScrollView<
     private var onRefresh: (@escaping ActionComplete) -> Void
     private var loadMore: (@escaping ActionComplete) -> Void
 
-    @Binding public var pullProgress: StateItem
-    @Binding public var swipupProgress: StateItem
+    @Binding public var pullProgress: InterActionState
+    @Binding public var swipupProgress: InterActionState
 
     @State private var scrollOffset: CGFloat = 0
     @State private var contentBounds: CGRect = .zero
@@ -154,7 +126,7 @@ public struct RefreshableScrollView<
                 self.scrollOffset = scrollOffset
 
                 pullingState()
-                swipingState(containerRect: containerRect, direction: direction)
+                swipingState(containerRect: containerRect, action: direction)
             }
         }
     }
@@ -184,7 +156,7 @@ public struct RefreshableScrollView<
             if pullProgress.isloading {
                 withAnimation {
                     pullProgress.updateState(.idle)
-                    // cancel
+                    pullProgress.cancel()
                 }
             }
 
@@ -215,7 +187,7 @@ public struct RefreshableScrollView<
         }
     }
 
-    private func swipingState(containerRect: CGRect, direction: ActionState) {
+    private func swipingState(containerRect: CGRect, action: ActionState) {
         guard swipupEnabled,
               contentBounds.height > 0 else {
             return
@@ -248,11 +220,10 @@ public struct RefreshableScrollView<
             return
         }
 
-        if direction == .pulling, scrollOffset >= cutOffset - swipupThreshold  {
+        if action == .pulling, scrollOffset >= cutOffset - swipupThreshold  {
             withAnimation {
                 swipupProgress.updateState(.idle)
-                swipupProgress.isCanceled = true
-                // cancel
+                swipupProgress.cancel()
             }
         }
     }

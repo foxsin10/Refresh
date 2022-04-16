@@ -9,7 +9,7 @@ struct Emptyloading: View {
 struct PullModifer<T: View>: ViewModifier {
     init(
         pullthreshold: CGFloat,
-        pullProgress: Binding<StateItem>,
+        pullProgress: Binding<InterActionState>,
         onRefresh: @escaping RefreshAction,
         @ViewBuilder pullAnimationView: @escaping () -> T
     ) {
@@ -19,7 +19,7 @@ struct PullModifer<T: View>: ViewModifier {
         self.onRefresh = onRefresh
     }
 
-    @Binding var pullProgress: StateItem
+    @Binding var pullProgress: InterActionState
     private var pullAnimationView: () -> T
     private let pullthreshold: CGFloat
     private let onRefresh: RefreshAction
@@ -44,7 +44,7 @@ struct PullModifer<T: View>: ViewModifier {
 public extension View {
     @ViewBuilder func onRefresh<V: View>(
         pullthreshold: CGFloat,
-        pullProgress: Binding<StateItem>,
+        pullProgress: Binding<InterActionState>,
         onRefresh: @escaping RefreshAction,
         @ViewBuilder pullAnimationView: @escaping () -> V
     ) -> some View {
@@ -63,7 +63,7 @@ public extension View {
 public extension View {
     @ViewBuilder func onRefresh<V: View>(
         pullthreshold: CGFloat,
-        pullProgress: Binding<StateItem>,
+        pullProgress: Binding<InterActionState>,
         asyncAction: @escaping @Sendable () async -> Void,
         @ViewBuilder pullAnimationView: @escaping () -> V
     ) -> some View {

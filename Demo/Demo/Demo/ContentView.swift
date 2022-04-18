@@ -35,7 +35,9 @@ struct ContentView: View {
                 pullthreshold: 50,
                 pullProgress: $pullProgress,
                 onRefresh: { done in
+                    print("pull to refresh")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        print("pull to refresh finish")
                         done()
                     }
                 },
@@ -49,7 +51,9 @@ struct ContentView: View {
                     buildLoadMoreView(progress: loadMoreProgress.progress)
                 },
                 onloadMore: { done in
+                    print("swip to load more")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        print("swip to load more finish")
                         done()
                     }
                 }

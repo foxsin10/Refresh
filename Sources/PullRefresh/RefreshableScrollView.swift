@@ -114,6 +114,7 @@ public struct RefreshableScrollView<
             }
         }
         .onPreferenceChange(RefreshKeys.Geometry.self) { geos in
+            // use async to avoid [multiple updating during a single frame] warning
             DispatchQueue.main.async {
                 let floatingRect = geos.first(where: \.isFloting)?.rect ?? .zero
                 // scrollview bounds
@@ -149,14 +150,14 @@ public struct RefreshableScrollView<
 
     private func pullingState() {
         guard self.scrollOffset > 0 else {
-            guard self.scrollOffset != 0 else {
+            guard self.scrollOffset < 0 else {
                 return
             }
 
             if pullProgress.isloading {
                 withAnimation {
-                    pullProgress.updateState(.idle)
                     pullProgress.cancel()
+                    pullProgress.updateState(.idle)
                 }
             }
 
@@ -178,10 +179,11 @@ public struct RefreshableScrollView<
             pullProgress = .init(state: .loading, progress: 1)
             // refresh
             onRefresh {
+                guard !pullProgress.isCanceled else {
+                    return
+                }
                 withAnimation {
-                    let isCanceled = pullProgress.isCanceled
-                    let progerss = pullProgress.progress
-                    pullProgress = .init(state: .idle, progress: isCanceled ? progerss : 0)
+                    pullProgress = .init(state: .idle, progress: 0)
                 }
             }
         }
@@ -208,12 +210,12 @@ public struct RefreshableScrollView<
             } else if scrollOffset >= cutOffset - swipupThreshold,
                       swipupProgress.ispulling {
                 swipupProgress = .init(state: .loading, progress: 1)
-
                 loadMore {
+                    guard !swipupProgress.isCanceled else {
+                        return
+                    }
                     withAnimation {
-                        let isCanceled = swipupProgress.isCanceled
-                        let progerss = swipupProgress.progress
-                        swipupProgress = .init(state: .idle, progress: isCanceled ? progerss : 0)
+                        swipupProgress = .init(state: .idle, progress: 0)
                     }
                 }
             }
@@ -222,8 +224,8 @@ public struct RefreshableScrollView<
 
         if action == .pulling, scrollOffset >= cutOffset - swipupThreshold  {
             withAnimation {
-                swipupProgress.updateState(.idle)
                 swipupProgress.cancel()
+                swipupProgress.updateState(.idle)
             }
         }
     }

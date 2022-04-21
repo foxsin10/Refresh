@@ -95,6 +95,8 @@ public struct RefreshableScrollView<
                 }
                 // use alignmentGuide to make space when loading
                 .alignmentGuide(.top, computeValue: { _ in
+                    // this is not good for animation, but if bind pullProgress or swipeprogress with @State or @Published will trigger the whole
+                    // content view's re-rendering, which may cause unneccessary animation or cell view flickering
                     pullProgress.isloading ? scrollOffset - pullthreshold : 0
                 })
 
@@ -200,13 +202,21 @@ public struct RefreshableScrollView<
         }
 
         let cutOffset = -(contentBounds.height - containerRect.height)
-        swipupProgress.updateProgress(max(0, (cutOffset - scrollOffset) / swipupThreshold))
+        if !swipupProgress.isFinished {
+            swipupProgress.updateProgress(max(0, (cutOffset - scrollOffset) / swipupThreshold))
+        }
 
         guard swipupProgress.isloading else {
+
+            guard scrollOffset < 0 else {
+                return
+            }
+
             // offset out of scrollview's bounds
             if scrollOffset < cutOffset - swipupThreshold,
                swipupProgress.idle {
                 swipupProgress.updateState(.pulling)
+                swipupProgress.resetFinished()
             } else if scrollOffset >= cutOffset - swipupThreshold,
                       swipupProgress.ispulling {
                 swipupProgress = .init(state: .loading, progress: 1)
@@ -215,7 +225,7 @@ public struct RefreshableScrollView<
                         return
                     }
                     withAnimation {
-                        swipupProgress = .init(state: .idle, progress: 0)
+                        swipupProgress = .init(state: .idle, progress: 0, finished: true)
                     }
                 }
             }
@@ -226,6 +236,7 @@ public struct RefreshableScrollView<
             withAnimation {
                 swipupProgress.cancel()
                 swipupProgress.updateState(.idle)
+                swipupProgress.resetFinished()
             }
         }
     }
@@ -260,7 +271,7 @@ private enum RefreshKeys {
         static var defaultValue: [GeometryItem] = []
 
         static func reduce(value: inout [GeometryItem], nextValue: () -> [GeometryItem]) {
-            value.append(contentsOf: nextValue())
+            value.insert(contentsOf: nextValue(), at: 0)
         }
     }
 

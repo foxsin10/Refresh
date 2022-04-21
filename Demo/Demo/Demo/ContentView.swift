@@ -5,14 +5,51 @@
 //  Created by yzj on 2022/4/14.
 //
 
+import Combine
 import SwiftUI
 //import PullRefresh
+
+@dynamicMemberLookup
+final class PullViewModel: ObservableObject {
+    let objectWillChange = ObservableObjectPublisher()
+    var pullProgress: InterActionState = .init(state: .idle, progress: 0) {
+        didSet {
+            print("scroll pull state", pullProgress)
+            guard oldValue.isloading != pullProgress.isloading else {
+                return
+            }
+            objectWillChange.send()
+        }
+    }
+
+    var swipeProgress: InterActionState = .init(state: .idle, progress: 0) {
+        didSet {
+            guard oldValue.isloading != swipeProgress.isloading else {
+                return
+            }
+
+            withAnimation {
+                objectWillChange.send()
+            }
+        }
+    }
+    
+    subscript<Value>(dynamicMember keyPath: ReferenceWritableKeyPath<PullViewModel, Value>) -> Binding<Value> {
+        Binding(
+            get: {
+                self[keyPath: keyPath]
+            },
+            set: { value, _ in
+                self[keyPath: keyPath] = value
+            }
+        )
+    }
+}
 
 struct ContentView: View {
     @State var items: [String] = []
 
-    @State var pullProgress: InterActionState = .init(state: .idle, progress: 0)
-    @State var loadMoreProgress: InterActionState = .init(state: .idle, progress: 0)
+    @StateObject var vm = PullViewModel()
 
     @State var refreshing: Bool = false
 
@@ -33,26 +70,32 @@ struct ContentView: View {
 
             RefreshableScrollView(
                 pullthreshold: 50,
-                pullProgress: $pullProgress,
+                pullProgress: $vm.pullProgress,
                 onRefresh: { done in
                     print("pull to refresh")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        guard !vm.pullProgress.isCanceled else {
+                            return
+                        }
                         print("pull to refresh finish")
                         done()
                     }
                 },
                 pullAnimationView: {
-                    buildLoadingView(progress: pullProgress.progress)
+                    buildLoadingView(progress: vm.pullProgress.progress)
                 },
                 enableSwipup: true,
                 swipupThreshold: 50,
-                swipupProgress: $loadMoreProgress,
+                swipupProgress: $vm.swipeProgress,
                 swipupAnimationView: {
-                    buildLoadMoreView(progress: loadMoreProgress.progress)
+                    buildLoadMoreView(progress: vm.swipeProgress.progress)
                 },
                 onloadMore: { done in
                     print("swip to load more")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        guard !vm.swipeProgress.isCanceled else {
+                            return
+                        }
                         print("swip to load more finish")
                         done()
                     }

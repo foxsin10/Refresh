@@ -14,7 +14,6 @@ final class PullViewModel: ObservableObject {
     let objectWillChange = ObservableObjectPublisher()
     var pullProgress: InterActionState = .init(state: .idle, progress: 0) {
         didSet {
-            print("scroll pull state", pullProgress)
             guard oldValue.isloading != pullProgress.isloading else {
                 return
             }
@@ -74,17 +73,17 @@ struct ContentView: View {
                 onRefresh: { done in
                     print("pull to refresh")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        defer { done() }
                         guard !vm.pullProgress.isCanceled else {
                             return
                         }
                         print("pull to refresh finish")
-                        done()
                     }
                 },
                 pullAnimationView: {
                     buildLoadingView(progress: vm.pullProgress.progress)
                 },
-                enableSwipup: true,
+                enableSwipup: false,
                 swipupThreshold: 50,
                 swipupProgress: $vm.swipeProgress,
                 swipupAnimationView: {
@@ -93,11 +92,11 @@ struct ContentView: View {
                 onloadMore: { done in
                     print("swip to load more")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        defer { done() }
                         guard !vm.swipeProgress.isCanceled else {
                             return
                         }
                         print("swip to load more finish")
-                        done()
                     }
                 }
             ) {

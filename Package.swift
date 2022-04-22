@@ -23,12 +23,12 @@ let package = Package(
         .target(
             name: "PullRefresh",
             dependencies: [],
-            exclude: ["Demo"]
+            exclude: ["../../Demo"]
         ),
         .testTarget(
             name: "PullRefreshTests",
             dependencies: ["PullRefresh"],
-            exclude: ["Demo"]
+            exclude: ["../../Demo"]
         ),
     ]
 )

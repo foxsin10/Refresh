@@ -157,20 +157,17 @@ public struct RefreshableScrollView<
             }
 
             if pullProgress.isloading {
-                withAnimation {
-                    pullProgress.cancel()
-                    pullProgress.updateState(.idle)
-                }
+                cancelRefreshing()
             }
 
             return
         }
 
-        // handle pull to refresh
         guard !pullProgress.isloading else {
             return
         }
 
+        // handle pull to refresh
         pullProgress.updateProgress(scrollOffset / pullthreshold)
 
         if scrollOffset > pullthreshold, pullProgress.idle {
@@ -178,16 +175,9 @@ public struct RefreshableScrollView<
             // maybe hatapic engine
 
         } else if scrollOffset <= pullthreshold, pullProgress.ispulling {
-            pullProgress = .init(state: .loading, progress: 1)
+            startRefreshing()
             // refresh
-            onRefresh {
-                guard !pullProgress.isCanceled else {
-                    return
-                }
-                withAnimation {
-                    pullProgress = .init(state: .idle, progress: 0)
-                }
-            }
+            onRefresh { finishRefreshing() }
         }
     }
 
@@ -220,24 +210,48 @@ public struct RefreshableScrollView<
             } else if scrollOffset >= cutOffset - swipupThreshold,
                       swipupProgress.ispulling {
                 swipupProgress = .init(state: .loading, progress: 1)
-                loadMore {
-                    guard !swipupProgress.isCanceled else {
-                        return
-                    }
-                    withAnimation {
-                        swipupProgress = .init(state: .idle, progress: 0, finished: true)
-                    }
-                }
+                loadMore { finishRefreshing() }
             }
             return
         }
 
         if action == .pulling, scrollOffset >= cutOffset - swipupThreshold  {
-            withAnimation {
-                swipupProgress.cancel()
-                swipupProgress.updateState(.idle)
-                swipupProgress.resetFinished()
-            }
+            cancelLoadMore()
+        }
+    }
+}
+
+extension RefreshableScrollView {
+    private func startRefreshing() {
+        withAnimation(.linear) {
+            pullProgress = .init(state: .loading, progress: 1)
+        }
+    }
+
+    private func finishRefreshing() {
+        withAnimation(.linear) {
+            pullProgress = .init(state: .idle, progress: 0)
+        }
+    }
+
+    private func cancelRefreshing() {
+        withAnimation(.linear) {
+            pullProgress.cancel()
+            pullProgress.updateState(.idle)
+        }
+    }
+
+    private func finishLoadMore() {
+        withAnimation {
+            swipupProgress = .init(state: .idle, progress: 0, finished: true)
+        }
+    }
+
+    private func cancelLoadMore() {
+        withAnimation {
+            swipupProgress.cancel()
+            swipupProgress.updateState(.idle)
+            swipupProgress.resetFinished()
         }
     }
 }

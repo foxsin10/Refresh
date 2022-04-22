@@ -10,26 +10,25 @@ struct PullModifer<T: View>: ViewModifier {
     init(
         pullthreshold: CGFloat,
         pullProgress: Binding<InterActionState>,
-        onRefresh: @escaping RefreshAction,
+        refreshing: @escaping RefreshAction,
         @ViewBuilder pullAnimationView: @escaping () -> T
     ) {
         self.pullthreshold = pullthreshold
         _pullProgress = pullProgress
         self.pullAnimationView = pullAnimationView
-        self.onRefresh = onRefresh
+        self.refreshing = refreshing
     }
 
     @Binding var pullProgress: InterActionState
     private var pullAnimationView: () -> T
     private let pullthreshold: CGFloat
-    private let onRefresh: RefreshAction
-    
+    private let refreshing: RefreshAction
 
     func body(content: Content) -> RefreshableScrollView<Content, T, Emptyloading> {
         RefreshableScrollView(
             pullthreshold: pullthreshold,
             pullProgress: $pullProgress,
-            onRefresh: onRefresh,
+            onRefresh: refreshing,
             pullAnimationView: pullAnimationView,
             enableSwipup: false,
             swipupThreshold: 0,
@@ -42,17 +41,17 @@ struct PullModifer<T: View>: ViewModifier {
 }
 
 public extension View {
-    @ViewBuilder func onRefresh<V: View>(
+    @ViewBuilder func refreshable<V: View>(
         pullthreshold: CGFloat,
         pullProgress: Binding<InterActionState>,
-        onRefresh: @escaping RefreshAction,
+        action: @escaping RefreshAction,
         @ViewBuilder pullAnimationView: @escaping () -> V
     ) -> some View {
         modifier(
             PullModifer(
                 pullthreshold: pullthreshold,
                 pullProgress: pullProgress,
-                onRefresh: onRefresh,
+                refreshing: action,
                 pullAnimationView: { pullAnimationView() }
             )
         )
@@ -60,8 +59,9 @@ public extension View {
 }
 
 #if compiler(>=5.5)
+@available(iOS 13.0, *)
 public extension View {
-    @ViewBuilder func onRefresh<V: View>(
+    @ViewBuilder func refreshable<V: View>(
         pullthreshold: CGFloat,
         pullProgress: Binding<InterActionState>,
         asyncAction: @escaping @Sendable () async -> Void,
@@ -71,7 +71,7 @@ public extension View {
             PullModifer(
                 pullthreshold: pullthreshold,
                 pullProgress: pullProgress,
-                onRefresh: { done in
+                refreshing: { done in
                     Task {
                         await asyncAction()
                         done()

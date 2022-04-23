@@ -233,10 +233,11 @@ extension RefreshableScrollView {
     }
 
     private func cancelRefreshing() {
-        withAnimation {
-            pullProgress.cancel()
-            pullProgress.updateState(.idle)
-        }
+//        withAnimation {
+//            pullProgress.cancel()
+//            pullProgress.updateState(.idle)
+//        }
+        pullProgress.cancel()
     }
 
     private func finishLoadMore() {

@@ -223,19 +223,17 @@ public struct RefreshableScrollView<
 
 extension RefreshableScrollView {
     private func startRefreshing() {
-        withAnimation(.linear) {
-            pullProgress = .init(state: .loading, progress: 1)
-        }
+        pullProgress = .init(state: .loading, progress: 1)
     }
 
     private func finishRefreshing() {
-        withAnimation(.linear) {
+        withAnimation {
             pullProgress = .init(state: .idle, progress: 0)
         }
     }
 
     private func cancelRefreshing() {
-        withAnimation(.linear) {
+        withAnimation {
             pullProgress.cancel()
             pullProgress.updateState(.idle)
         }
